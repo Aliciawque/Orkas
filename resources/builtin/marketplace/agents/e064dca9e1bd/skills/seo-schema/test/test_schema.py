@@ -137,5 +137,63 @@ class MediumFixTest(unittest.TestCase):
         self.assertNotIn("schema_no_type", {f["id"] for f in r["findings"]})
 
 
+class EmbeddedNodeValidateTest(unittest.TestCase):
+    def test_nested_product_missing_name_is_linted(self):
+        sd = [{"@type": "WebPage", "mainEntity": {"@type": "Product"}}]
+        r = validate(crawl("https://x.com/p", sd))
+        self.assertIn("Product", r["present_types"])
+        self.assertIn("Product lacks name", [f["evidence"] for f in r["findings"]])
+
+    def test_nested_breadcrumb_prevents_duplicate_recommendation(self):
+        sd = [{"@type": "WebPage", "breadcrumb": {"@type": "BreadcrumbList",
+               "itemListElement": [{"@type": "ListItem", "position": 1}]}}]
+        r = validate(crawl("https://x.com/p", sd))
+        self.assertEqual(r["recommended_types"], [])
+        self.assertEqual(set(r["present_types"]), {"WebPage", "BreadcrumbList", "ListItem"})
+
+    def test_deep_arrays_and_graphs_are_walked_once(self):
+        sd = [{"@graph": [{"@type": "WebPage", "mainEntity": [
+            {"@type": "Product", "brand": {"@type": "Organization", "name": "X"}},
+            {"@graph": {"@type": "Article"}}]}]}]
+        r = validate(crawl("https://x.com/p", sd))
+        missing = [f["evidence"] for f in r["findings"] if f["id"] == "schema_missing_field"]
+        self.assertCountEqual(missing, ["Product lacks name", "Organization lacks url", "Article lacks headline"])
+        self.assertNotIn("schema_no_type", {f["id"] for f in r["findings"]})
+
+    def test_context_definitions_and_json_literals_are_not_nodes(self):
+        sd = [{"@context": {"example": {"@type": "Product"}}, "@type": "WebPage",
+               "data": {"@type": "@json", "@value": {"@type": "BreadcrumbList"}},
+               "name": {"@value": "Page", "@language": "en"}}]
+        r = validate(crawl("https://x.com/p", sd))
+        self.assertEqual(r["present_types"], ["WebPage"])
+        self.assertEqual(r["recommended_types"], ["BreadcrumbList"])
+        self.assertNotIn("schema_no_type", {f["id"] for f in r["findings"]})
+
+    def test_node_references_and_untyped_property_objects_are_not_linted(self):
+        sd = [{"@id": "#page"}, {"@type": "WebPage", "author": {"@id": "#author"},
+               "details": {"name": "not a typed node", "part": {"@type": "Product"}}}]
+        r = validate(crawl("https://x.com/p", sd))
+        self.assertNotIn("schema_no_type", {f["id"] for f in r["findings"]})
+        self.assertIn("Product", r["present_types"])
+
+    def test_top_level_and_graph_typeless_warnings_are_preserved(self):
+        sd = [{"name": "top"}, {"@graph": [{"name": "graph"}]}]
+        r = validate(crawl("https://x.com/p", sd))
+        self.assertEqual(sum(f["id"] == "schema_no_type" for f in r["findings"]), 2)
+
+    def test_typed_graph_wrapper_is_also_validated(self):
+        sd = [{"@type": "Organization", "name": "X", "@graph": {"@type": "Product"}}]
+        r = validate(crawl("https://x.com/p", sd))
+        missing = [f["evidence"] for f in r["findings"] if f["id"] == "schema_missing_field"]
+        self.assertCountEqual(missing, ["Organization lacks url", "Product lacks name"])
+
+    def test_list_and_set_containers_are_not_typeless_nodes(self):
+        sd = [{"@type": "WebPage", "parts": {"@list": [{"@type": "Article"}]},
+               "related": {"@set": [{"@type": "Product"}]}}]
+        r = validate(crawl("https://x.com/p", sd))
+        self.assertNotIn("schema_no_type", {f["id"] for f in r["findings"]})
+        self.assertEqual(set(r["present_types"]), {"WebPage", "Article", "Product"})
+
+
 if __name__ == "__main__":
     unittest.main()

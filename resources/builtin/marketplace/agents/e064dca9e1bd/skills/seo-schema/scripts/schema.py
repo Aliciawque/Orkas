@@ -66,22 +66,33 @@ def _data_page(crawl_obj: dict) -> tuple[dict, dict]:
 
 
 def _nodes(structured_data: list) -> list[dict]:
-    """Flatten JSON-LD blocks, expanding @graph."""
+    """Collect nodes, including typed objects embedded in property values.
+
+    This is a compact JSON-LD lint, not context expansion. Context definitions
+    and value objects (including @json payloads) are not entity nodes. Keep the
+    existing missing-type lint for top-level / @graph entries, but do not turn
+    arbitrary untyped property objects or @id references into missing-type errors.
+    """
     out = []
-    for block in structured_data or []:
-        items = block if isinstance(block, list) else [block]
-        for it in items:
-            if not isinstance(it, dict):
+    pending = [(block, True) for block in reversed(structured_data or [])]
+    while pending:
+        item, require_type = pending.pop()
+        if isinstance(item, list):
+            pending.extend((value, require_type) for value in reversed(item))
+            continue
+        if not isinstance(item, dict) or "@value" in item:
+            continue
+        if "@id" in item and set(item) <= {"@id", "@index"}:
+            continue  # A reference to a node, not another definition of it.
+        container = any(key in item for key in ("@graph", "@list", "@set"))
+        if "@type" in item or (require_type and not container):
+            out.append(item)
+        for key, value in reversed(list(item.items())):
+            if key in ("@context", "@type"):
                 continue
-            if "@graph" in it:
-                # @graph is usually a list, but a single-node object is valid too;
-                # treating a dict @graph as a plain node dropped the inner node(s)
-                # and left a typeless wrapper (spurious schema_no_type).
-                graph = it["@graph"]
-                graph_items = graph if isinstance(graph, list) else [graph]
-                out.extend(n for n in graph_items if isinstance(n, dict))
-            else:
-                out.append(it)
+            child_requires_type = key == "@graph" or (
+                require_type and key in ("@list", "@set"))
+            pending.append((value, child_requires_type))
     return out
 
 

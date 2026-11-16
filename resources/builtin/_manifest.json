@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "content_tree_sha256": "5df9dc3594a36160035034b51acd8a68f33518a460be44b066200ef36a08920f",
+  "content_tree_sha256": "f20fd5f68d4ec1961045e299dea26cf0ddfb94592c56967085690caec8247dcd",
   "files": [
     {
       "path": "apps/builtin-content-workbench/__orkas-meta.json",
@@ -919,13 +919,13 @@
     },
     {
       "path": "marketplace/agents/e064dca9e1bd/skills/seo-schema/scripts/schema.py",
-      "bytes": 9207,
-      "sha256": "324b0cd5458e164edc6a946206e91e1f67fb476ddc21aaf98e6bad43e3e3879f"
+      "bytes": 9816,
+      "sha256": "56b87a26a7ee3018b84eabe8b778241aa2c28ae04d1e7cb91dec8e2ade1060a0"
     },
     {
       "path": "marketplace/agents/e064dca9e1bd/skills/seo-schema/SKILL.md",
-      "bytes": 2741,
-      "sha256": "2c12100e17bba91a9a274501ddc410bc39894b742101fac5bd4cc64c97a79531"
+      "bytes": 2926,
+      "sha256": "fffc71f8481418f6c3236cb2690990db23dfb6693a8b9117a4dda9e359b49662"
     },
     {
       "path": "marketplace/agents/e064dca9e1bd/skills/seo-tech-audit/scripts/audit.py",

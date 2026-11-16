@@ -50,4 +50,4 @@ Findings use `dimension: "schema"` and feed `seo-report --add`.
 
 ## Lint coverage
 
-Missing `@type`; missing required fields (Organization/WebSite/SoftwareApplication/Article/FAQPage/BreadcrumbList/Product/HowTo); deprecated rich-result types (FAQPage/HowTo still valid markup but no rich result for most sites); recommended types by page role (home → Organization+WebSite; deep page → BreadcrumbList). `@graph` is expanded.
+Missing `@type`; missing required fields (Organization/WebSite/SoftwareApplication/Article/FAQPage/BreadcrumbList/Product/HowTo); deprecated rich-result types (FAQPage/HowTo still valid markup but no rich result for most sites); recommended types by page role (home → Organization+WebSite; deep page → BreadcrumbList). `@graph` and nested typed property objects are traversed. Context definitions, value objects and node references are not linted as entity definitions; this is not a full JSON-LD context-expansion processor.
